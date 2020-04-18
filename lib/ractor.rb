@@ -7,6 +7,8 @@ r1 = Ractor.new name: :r1 do
 
   msg = Ractor.recv
   puts msg
+
+  'return value'
 end
 
 r2 = Ractor.new name: :r2 do
@@ -20,7 +22,7 @@ puts r2.name
 
 r1.send 'message from outside'
 
-r1.take
+puts r1.take
 r2.take
 
 puts 'end'
