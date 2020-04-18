@@ -34,6 +34,7 @@ class RactorTCPServer
 
           sock = Ractor.recv
           begin
+            sleep 1 # wait to simulate a heavy response
             sock.write 'accepted'
             puts "#{self.name}: respond"
           ensure
