@@ -2,28 +2,49 @@
 
 require 'socket'
 
-rs = 2.times.map do |i|
-  Ractor.new name: "r#{i}" do
-    Ractor.yield 'ready' # ここで block, 外部から select されると進む
+class RactorTCPServer
+  def initialize(port, worker_count)
+    @port = port
+    @worker_count = worker_count
+  end
 
-    sock = Ractor.recv
-    begin
-      sock.write 'accepted'
-      puts "#{self.name}: respond"
-    ensure
-      sock.close
+  def start
+    server = TCPServer.new(@port)
+
+    rs = init_workers(@worker_count)
+
+    loop do
+      puts 'start server loop'
+
+      sock = server.accept
+
+      r, _ = Ractor.select(*rs)
+      r.send(sock, move: true) # Socket を渡すには :move オプションが必要
+      puts "Sent socket to #{r.name}"
     end
+  end
 
-    'end'
+  private
+
+  def init_workers(worker_count)
+    worker_count.times.map do |i|
+      Ractor.new name: "r#{i}" do
+        loop do
+          Ractor.yield 'ready' # ここで block, 外部から select されると進む
+
+          sock = Ractor.recv
+          begin
+            sock.write 'accepted'
+            puts "#{self.name}: respond"
+          ensure
+            sock.close
+          end
+        end
+      end
+    end
   end
 end
 
-Socket.tcp_server_loop(8080) do |sock, client_addrinfo|
-  puts 'start server loop'
-
-  r, _ = Ractor.select(*rs)
-  r.send(sock) #=> <internal:ractor>:100:in `send': can't dump Socket (TypeError)
-  puts "Sent socket to #{r.name}"
-end
-
-puts 'exit'
+server = RactorTCPServer.new(8080, 2)
+puts 'starting RactorTCPServer ...'
+server.start
