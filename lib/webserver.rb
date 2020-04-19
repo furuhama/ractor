@@ -3,6 +3,8 @@
 require 'socket'
 
 class RactorTCPServer
+  BACKLOG = 5
+
   def initialize(port, worker_count)
     @port = port
     @worker_count = worker_count
@@ -10,6 +12,7 @@ class RactorTCPServer
 
   def start
     server = TCPServer.new(@port)
+    server.listen BACKLOG
 
     rs = init_workers(@worker_count)
 
